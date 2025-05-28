@@ -63,7 +63,7 @@ class ChatModel:
             outputs = self.model.generate(
                 input_ids=inputs,
                 max_new_tokens=max_new_tokens,
-                do_sample=False,
+                do_sample=True,
                 pad_token_id=self.tokenizer.eos_token_id,
                 temperature=0.7,
                 top_p=0.9,
