@@ -129,11 +129,6 @@ class StreamlitChatApp:
                         if rag_pipeline and rag_pipeline.setup_database(file_paths):
                             st.session_state.rag_pipeline = rag_pipeline
                             st.success(f"✅ Processed {len(uploaded_files)} document(s)")
-                            
-                            # Show pipeline stats
-                            stats = rag_pipeline.get_pipeline_stats()
-                            with st.expander("📊 Document Statistics"):
-                                st.json(stats)
                         else:
                             st.error("Failed to process documents")
             
