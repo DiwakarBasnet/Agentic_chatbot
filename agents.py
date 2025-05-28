@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
 import dateparser
+from dateparser.search import search_dates
 
 
 class ConversationState(Enum):
@@ -45,32 +46,18 @@ class InputValidator:
     @staticmethod
     def extract_date(text: str) -> Optional[str]:
         """Extract and convert date from natural language to YYYY-MM-DD format"""
-        # dateparser for natural language date parsing
-        parsed_date = dateparser.parse(text, settings={'PREFER_DATES_FROM': 'future'})
-        
-        if parsed_date:
-            return parsed_date.strftime('%Y-%m-%d')
-        
-        today = datetime.now()
-        text_lower = text.lower()
-        
-        # Handle relative dates
-        date_mappings = {
-            'today': 0,
-            'tomorrow': 1,
-            'next sunday': (0 - today.weekday()) % 7 or 7,
-            'next monday': (1 - today.weekday()) % 7 or 7,
-            'next tuesday': (2 - today.weekday()) % 7 or 7,
-            'next wednesday': (3 - today.weekday()) % 7 or 7,
-            'next thursday': (4 - today.weekday()) % 7 or 7,
-            'next friday': (5 - today.weekday()) % 7 or 7,
-            'next saturday': (6 - today.weekday()) % 7 or 7,
+        settings = {
+            'PREFER_DATES_FROM': 'future',
+            'RELATIVE_BASE': datetime.now(),
+            'RETURN_AS_TIMEZONE_AWARE': False
         }
         
-        for phrase, days_ahead in date_mappings.items():
-            if phrase in text_lower:
-                target_date = today + timedelta(days=days_ahead)
-                return target_date.strftime('%Y-%m-%d')
+        result = search_dates(text, settings=settings)
+        
+        if result:
+            # result is a list of tuples (matched_text, datetime_obj)
+            _, parsed_date = result[0]
+            return parsed_date.strftime('%Y-%m-%d')
         
         return None
 
