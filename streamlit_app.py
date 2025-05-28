@@ -2,11 +2,10 @@ import os
 import streamlit as st
 from typing import Optional
 import logging
-
-# Import custom modules
 from model import ChatModel
 from rag_util import Encoder, FaissDb, DocumentProcessor, RAGPipeline
 from agents import ConversationalAgent, ConversationState
+from config import StreamlitConfig
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -24,17 +23,18 @@ os.makedirs(FILES_DIR, exist_ok=True)
 class StreamlitChatApp:
     """Main Streamlit chat application class"""
     
-    def __init__(self):
+    def __init__(self, config: StreamlitConfig):
+        self.config = config
         self.setup_page_config()
         self.initialize_session_state()
         
     def setup_page_config(self):
         """Configure Streamlit page settings"""
         st.set_page_config(
-            page_title="Chatbot", 
-            page_icon="🤖", 
-            layout="wide",
-            initial_sidebar_state="expanded"
+            page_title=self.config.page_title, 
+            page_icon=self.config.page_icon, 
+            layout=self.config.layout,
+            initial_sidebar_state=self.config.initial_sidebar_state
         )
         
     def initialize_session_state(self):

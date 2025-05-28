@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 import dateparser
 from dateparser.search import search_dates
+from config import TIME_PATTERN, PHONE_PATTERN, EMAIL_PATTERN, CALL_PATTERNS, APPOINTMENT_PATTERNS
 
 
 class ConversationState(Enum):
@@ -27,21 +28,18 @@ class InputValidator:
     @staticmethod
     def validate_email(email: str) -> bool:
         """Validate email format"""
-        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        return re.match(pattern, email) is not None
+        return re.match(EMAIL_PATTERN, email) is not None
     
     @staticmethod
     def validate_phone(phone: str) -> bool:
         """Validate phone number format"""
         cleaned_phone = re.sub(r'[\s\-\(\)\.]+', '', phone)
-        pattern = r'^[\+]?[1-9]?\d{9,15}$'
-        return re.match(pattern, cleaned_phone) is not None
+        return re.match(PHONE_PATTERN, cleaned_phone) is not None
     
     @staticmethod
-    def validate_time(time_str: str) -> bool:
+    def validate_time(time_str: str) -> bool:   
         """Validate time format"""
-        time_pattern = r'^([0-1]?[0-9]|2[0-3])[:\s][0-5][0-9](\s?(AM|PM|am|pm))?$|^([1-9]|1[0-2])(\s?(AM|PM|am|pm))$'
-        return re.match(time_pattern, time_str.strip()) is not None or ':' in time_str
+        return re.match(TIME_PATTERN, time_str.strip()) is not None or ':' in time_str
     
     @staticmethod
     def extract_date(text: str) -> Optional[str]:
@@ -64,26 +62,14 @@ class InputValidator:
 
 class IntentDetector:
     """Detect user intents from messages"""
-    
-    CALL_PATTERNS = [
-        'call me', 'contact me', 'reach out', 'get in touch', 'phone me',
-        'give me a call', 'call back', 'callback', 'ring me'
-    ]
-    
-    APPOINTMENT_PATTERNS = [
-        'book appointment', 'schedule', 'make appointment', 'book meeting',
-        'set appointment', 'appointment booking', 'schedule meeting',
-        'book a session', 'reserve time', 'make reservation', 'book an appointment'
-    ]
-    
     @classmethod
     def detect_intent(cls, message: str) -> str:
         """Detect user intent from message"""
         message_lower = message.lower()
         
-        if any(pattern in message_lower for pattern in cls.CALL_PATTERNS):
+        if any(pattern in message_lower for pattern in CALL_PATTERNS):
             return 'request_callback'
-        elif any(pattern in message_lower for pattern in cls.APPOINTMENT_PATTERNS):
+        elif any(pattern in message_lower for pattern in APPOINTMENT_PATTERNS):
             return 'book_appointment'
         
         return 'general_query'
