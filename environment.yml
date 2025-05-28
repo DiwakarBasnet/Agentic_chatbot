@@ -1,0 +1,6 @@
+name: chatbot
+channels:
+  - defaults
+dependencies:
+  - python=3.11
+  - python-dotenv=0.21.0
