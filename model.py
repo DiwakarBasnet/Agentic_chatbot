@@ -53,11 +53,16 @@ class ChatModel:
             add_generation_prompt=True,
         )
         
-        inputs = self.tokenizer.encode(
+        inputs = self.tokenizer(
             formatted_prompt, 
             add_special_tokens=False, 
-            return_tensors="pt"
+            return_tensors="pt",
+            padding=True,
+            truncation=True
         ).to(self.device)
+
+        attetntion_mask = inputs['attention_mask']
+        inputs = inputs['input_ids']
         
         with torch.no_grad():
             outputs = self.model.generate(

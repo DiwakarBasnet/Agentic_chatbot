@@ -237,7 +237,7 @@ class StreamlitChatApp:
     
     def render_header(self):
         """Render the main header"""
-        st.title("🤖 Enhanced RAG Chatbot Assistant")
+        st.title("🤖 Chatbot Assistant")
         st.markdown("*Ask questions about your documents, request callbacks, or book appointments!*")
         
         # Show connection status
