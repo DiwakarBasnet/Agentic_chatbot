@@ -40,7 +40,7 @@ class InputValidator:
     @staticmethod
     def validate_time(time_str: str) -> bool:
         """Validate time format"""
-        time_pattern = r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9](\s?(AM|PM|am|pm))?$|^([1-9]|1[0-2])(\s?(AM|PM|am|pm))$'
+        time_pattern = r'^([0-1]?[0-9]|2[0-3])[:\s][0-5][0-9](\s?(AM|PM|am|pm))?$|^([1-9]|1[0-2])(\s?(AM|PM|am|pm))$'
         return re.match(time_pattern, time_str.strip()) is not None or ':' in time_str
     
     @staticmethod
@@ -73,7 +73,7 @@ class IntentDetector:
     APPOINTMENT_PATTERNS = [
         'book appointment', 'schedule', 'make appointment', 'book meeting',
         'set appointment', 'appointment booking', 'schedule meeting',
-        'book a session', 'reserve time', 'make reservation'
+        'book a session', 'reserve time', 'make reservation', 'book an appointment'
     ]
     
     @classmethod
@@ -115,7 +115,7 @@ class ConversationalAgent:
                 self.current_field = 'email'
                 return "Perfect! Finally, please provide your email address:", False
             else:
-                return "Please provide a valid phone number (e.g., +1234567890 or 123-456-7890):", False
+                return "Please provide a valid phone number (e.g., 9841248772):", False
         
         elif self.current_field == 'email':
             if InputValidator.validate_email(message):
@@ -197,27 +197,27 @@ class ConversationalAgent:
     def _format_contact_confirmation(self) -> str:
         """Format contact information confirmation message"""
         return f"""Thank you! I have collected your information:
-                
-📞 **Contact Details Saved:**
-- Name: {self.user_info.name}
-- Phone: {self.user_info.phone}
-- Email: {self.user_info.email}
+                                    
+                    📞 **Contact Details Saved:**
+                    - Name: {self.user_info.name}
+                    - Phone: {self.user_info.phone}
+                    - Email: {self.user_info.email}
 
-Someone from our team will contact you shortly!"""
+                    Someone from our team will contact you shortly!"""
     
     def _format_appointment_confirmation(self) -> str:
         """Format appointment confirmation message"""
-        return f"""🎉 **Appointment Booked Successfully!**
+        return f"""**Appointment Booked Successfully!**
 
-📅 **Appointment Details:**
-- Name: {self.user_info.name}
-- Phone: {self.user_info.phone}
-- Email: {self.user_info.email}
-- Date: {self.user_info.appointment_date}
-- Time: {self.user_info.appointment_time}
-- Reason: {self.user_info.reason}
+                    📅 **Appointment Details:**
+                    - Name: {self.user_info.name}
+                    - Phone: {self.user_info.phone}
+                    - Email: {self.user_info.email}
+                    - Date: {self.user_info.appointment_date}
+                    - Time: {self.user_info.appointment_time}
+                    - Reason: {self.user_info.reason}
 
-You will receive a confirmation email shortly. Thank you!"""
+                    You will receive a confirmation email shortly. Thank you!"""
     
     def get_current_state_info(self) -> dict:
         """Get current conversation state information for debugging"""
