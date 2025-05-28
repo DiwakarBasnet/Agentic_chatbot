@@ -3,6 +3,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from dotenv import load_dotenv
 from typing import Optional
+from config import config
 
 load_dotenv()
 
@@ -12,23 +13,25 @@ CACHE_DIR = os.path.normpath(
 
 
 class ChatModel:
-    def __init__(self, model_id: str = "google/gemma-2b-it", device: str = "cpu"):
-        self.model_id = model_id
-        self.device = device
+    def __init__(self, model_config):
+        self.model_id = model_config.model_id
+        self.device = model_config.device
+        self.temperature = model_config.temperature
+        self.top_p = model_config.top_p
+        self.max_new_tokens = model_config.max_new_tokens
         
         ACCESS_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
         self.tokenizer = AutoTokenizer.from_pretrained(
-            model_id, 
-            cache_dir=CACHE_DIR, 
+            self.model_id, 
+            cache_dir=CACHE_DIR,
             token=ACCESS_TOKEN
         )
         self.model = AutoModelForCausalLM.from_pretrained(
-            model_id,
-            device_map="auto",
+            self.model_id,
             cache_dir=CACHE_DIR,
             token=ACCESS_TOKEN,
-        )
+        ).to(self.device)
         self.model.eval()
         self.chat_history = []
     
@@ -61,23 +64,22 @@ class ChatModel:
             truncation=True
         ).to(self.device)
 
-        attetntion_mask = inputs['attention_mask']
+        attention_mask = inputs['attention_mask']
         inputs = inputs['input_ids']
         
         with torch.no_grad():
             outputs = self.model.generate(
                 input_ids=inputs,
-                max_new_tokens=max_new_tokens,
+                attention_mask=attention_mask,
+                max_new_tokens=self.max_new_tokens,
                 do_sample=True,
                 pad_token_id=self.tokenizer.eos_token_id,
-                temperature=0.7,
-                top_p=0.9,
+                temperature=self.temperature,
+                top_p=self.top_p
             )
         
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=False)
-        response = self._clean_response(response, formatted_prompt)
-        
-        return response
+        return self._clean_response(response, formatted_prompt)
     
     def _build_prompt(self, question: str, context: Optional[str] = None) -> str:
         """Build appropriate prompt based on whether context is provided"""
@@ -97,13 +99,9 @@ class ChatModel:
     
     def _clean_response(self, response: str, formatted_prompt: str) -> str:
         """Clean and format the model response"""
-        # Remove input prompt from response
+        # Remove input prompt and special tokens from response
         response = response[len(formatted_prompt):]
-        
-        # Remove special tokens
-        response = response.replace("<eos>", "")
-        response = response.replace("</s>", "")
-        response = response.replace("<|endoftext|>", "")
+        response = response.replace("<eos>", "").replace("</s>", "").replace("<|endoftext|>", "")
         
         # Clean up whitespace
         response = response.strip()
@@ -119,7 +117,7 @@ class ChatModel:
         return '\n'.join(cleaned_lines) if cleaned_lines else response
     
     def generate_with_history(self, question: str, context: Optional[str] = None, 
-                            max_new_tokens: int = 250, max_history: int = 5) -> str:
+                            max_new_tokens: int = None, max_history: int = None) -> str:
         """
         Generate response with conversation history consideration
         
@@ -133,6 +131,7 @@ class ChatModel:
             Generated response
         """
         # Build conversation history
+        max_history = max_history or config.get_agent_config().max_conversation_history
         recent_history = self.chat_history[-max_history:] if self.chat_history else []
         
         # Create conversation context
@@ -155,10 +154,7 @@ class ChatModel:
             
             Current Question: {question}"""
         
-        # Generate response
         response = self.generate(full_prompt, max_new_tokens=max_new_tokens)
-        
-        # Update history
         self.chat_history.append({
             'user': question,
             'assistant': response

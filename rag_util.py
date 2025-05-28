@@ -6,54 +6,51 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.vectorstores.utils import DistanceStrategy
 from transformers import AutoTokenizer
+from config import config
 import logging
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-CACHE_DIR = os.path.normpath(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models")
-)
+CACHE_DIR = config.models_dir
 
 
 class Encoder:
     """Handles document embedding functionality"""
     
-    def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L12-v2", device: str = "cpu"):
-        self.model_name = model_name
-        self.device = device
+    def __init__(self, embedding_config):
+        self.model_name = embedding_config.model_name
+        self.device = embedding_config.device
         
         try:
             self.embedding_function = HuggingFaceEmbeddings(
-                model_name=model_name,
+                model_name=self.model_name,
                 cache_folder=CACHE_DIR,
-                model_kwargs={"device": device},
-                encode_kwargs={"normalize_embeddings": True}  # Normalize for better cosine similarity
+                model_kwargs={"device": self.device},
+                encode_kwargs={"normalize_embeddings": embedding_config.normalize_embeddings}
             )
-            logger.info(f"Successfully loaded embedding model: {model_name}")
+            logger.info(f"Successfully loaded embedding model: {self.model_name}")
         except Exception as e:
             logger.error(f"Failed to load embedding model: {e}")
             raise
     
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        """Get embeddings for a list of texts"""
         return self.embedding_function.embed_documents(texts)
     
     def get_embedding(self, text: str) -> List[float]:
-        """Get embedding for a single text"""
         return self.embedding_function.embed_query(text)
 
 
 class FaissDb:
     """FAISS database with search capabilities"""
     
-    def __init__(self, docs, embedding_function):
+    def __init__(self, docs, embedding_function, distance_strategy=DistanceStrategy.COSINE):
         try:
             self.db = FAISS.from_documents(
                 docs, 
                 embedding_function, 
-                distance_strategy=DistanceStrategy.COSINE
+                distance_strategy=distance_strategy
             )
             logger.info(f"Successfully created FAISS database with {len(docs)} documents")
         except Exception as e:
@@ -92,8 +89,7 @@ class FaissDb:
             List of (document, score) tuples
         """
         try:
-            results = self.db.similarity_search_with_score(question, k=k)
-            return results
+            return self.db.similarity_search_with_score(question, k=k)
         except Exception as e:
             logger.error(f"Error during similarity search with scores: {e}")
             return []
@@ -105,14 +101,12 @@ class FaissDb:
         
         context_parts = []
         for i, doc in enumerate(docs, 1):
-            # Add document metadata if available
             metadata = doc.metadata
             source_info = ""
             if 'source' in metadata:
                 source_info = f" (Source: {os.path.basename(metadata['source'])})"
             if 'page' in metadata:
                 source_info += f" (Page: {metadata['page']})"
-            
             context_parts.append(f"Document {i}{source_info}:\n{doc.page_content}")
         
         return "\n\n".join(context_parts)
@@ -125,12 +119,11 @@ class FaissDb:
         }
 
 
-class DocumentProcessor:
-    """Handle document processing and splitting"""
-    
-    def __init__(self, chunk_size: int = 256, chunk_overlap_ratio: float = 0.1):
-        self.chunk_size = chunk_size
-        self.chunk_overlap = int(chunk_size * chunk_overlap_ratio)
+class DocumentProcessor:  
+    def __init__(self):
+        rag_config = config.get_rag_config()
+        self.chunk_size = rag_config.chunk_size
+        self.chunk_overlap = int(self.chunk_size * rag_config.chunk_overlap_ratio)
         
     def load_and_split_pdfs(self, file_paths: List[str]) -> List:
         """
@@ -170,10 +163,9 @@ class DocumentProcessor:
         
         # Split documents
         try:
+            tokenizer = AutoTokenizer.from_pretrained(config.get_embedding_config().model_name)
             text_splitter = RecursiveCharacterTextSplitter.from_huggingface_tokenizer(
-                tokenizer=AutoTokenizer.from_pretrained(
-                    "sentence-transformers/all-MiniLM-L12-v2"
-                ),
+                tokenizer=tokenizer,
                 chunk_size=self.chunk_size,
                 chunk_overlap=self.chunk_overlap,
                 strip_whitespace=True,
@@ -204,12 +196,9 @@ class DocumentProcessor:
 class RAGPipeline:
     """Complete RAG pipeline combining all components"""
     
-    def __init__(self, 
-                 embedding_model: str = "sentence-transformers/all-MiniLM-L12-v2",
-                 chunk_size: int = 256,
-                 device: str = "cpu"):
-        self.encoder = Encoder(model_name=embedding_model, device=device)
-        self.processor = DocumentProcessor(chunk_size=chunk_size)
+    def __init__(self):
+        self.encoder = Encoder(embedding_config=config.get_embedding_config())
+        self.processor = DocumentProcessor()
         self.db = None
         
     def setup_database(self, file_paths: List[str]) -> bool:
@@ -227,8 +216,8 @@ class RAGPipeline:
             if not docs:
                 logger.error("No documents to process")
                 return False
-                
-            self.db = FaissDb(docs=docs, embedding_function=self.encoder.embedding_function)
+            distance_strategy = getattr(DistanceStrategy, config.get_rag_config().distance_strategy.upper(), DistanceStrategy.COSINE)
+            self.db = FaissDb(docs=docs, embedding_function=self.encoder.embedding_function, distance_strategy=distance_strategy)
             logger.info("RAG pipeline setup completed successfully")
             return True
         except Exception as e:
@@ -266,8 +255,7 @@ class RAGPipeline:
         return stats
 
 
-# Convenience functions for backward compatibility
 def load_and_split_pdfs(file_paths: List[str], chunk_size: int = 256) -> List:
-    """Load and split PDFs - backward compatibility function"""
+    """Load and split PDFs into chunks"""
     processor = DocumentProcessor(chunk_size=chunk_size)
     return processor.load_and_split_pdfs(file_paths)

@@ -1,11 +1,16 @@
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
 import dateparser
 from dateparser.search import search_dates
-from config import TIME_PATTERN, PHONE_PATTERN, EMAIL_PATTERN, CALL_PATTERNS, APPOINTMENT_PATTERNS
+from config import (
+    TIME_PATTERN, PHONE_PATTERN, EMAIL_PATTERN,
+    CALL_PATTERNS, APPOINTMENT_PATTERNS, config
+)
+
+agent_config = config.get_agent_config()
 
 
 class ConversationState(Enum):
@@ -83,6 +88,8 @@ class ConversationalAgent:
         self.user_info = UserInfo()
         self.current_field = None
         self.intent_detector = IntentDetector()
+        self.max_history = agent_config.max_conversation_history
+        self.intent_confidence_threshold = agent_config.intent_confidence_threshold
         
     def detect_intent(self, message: str) -> str:
         """Detect user intent from message"""
@@ -142,7 +149,7 @@ class ConversationalAgent:
             if extracted_date:
                 self.user_info.appointment_date = extracted_date
                 self.current_field = 'time'
-                return f"Great! Date set for {extracted_date}. What time would you prefer? ", False
+                return f"Date set for {extracted_date}. What time would you prefer? ", False
             else:
                 return "I couldn't understand the date. Please provide a clearer date (e.g., 'next Monday', 'tomorrow', or '2024-12-25'):", False
         
@@ -217,5 +224,9 @@ class ConversationalAgent:
                 'appointment_date': self.user_info.appointment_date,
                 'appointment_time': self.user_info.appointment_time,
                 'reason': self.user_info.reason
+            },
+            'agent_config': {
+                'max_conversation_history': self.max_history,
+                'intent_confidence_threshold': self.intent_confidence_threshold,
             }
         }

@@ -3,9 +3,9 @@ import streamlit as st
 from typing import Optional
 import logging
 from model import ChatModel
-from rag_util import Encoder, FaissDb, DocumentProcessor, RAGPipeline
+from rag_util import RAGPipeline
 from agents import ConversationalAgent, ConversationState
-from config import StreamlitConfig
+from config import config
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -23,8 +23,8 @@ os.makedirs(FILES_DIR, exist_ok=True)
 class StreamlitChatApp:
     """Main Streamlit chat application class"""
     
-    def __init__(self, config: StreamlitConfig):
-        self.config = config
+    def __init__(self):
+        self.config = config.streamlit
         self.setup_page_config()
         self.initialize_session_state()
         
@@ -52,7 +52,8 @@ class StreamlitChatApp:
     def load_model(_self):
         """Load and cache the chat model"""
         try:
-            model = ChatModel(model_id="google/gemma-2b-it", device="cpu")
+            model_config = config.get_model_config()
+            model = ChatModel(model_config)
             logger.info("Chat model loaded successfully")
             return model
         except Exception as e:
@@ -61,10 +62,10 @@ class StreamlitChatApp:
             return None
     
     @st.cache_resource
-    def load_rag_pipeline(_self, embedding_model: str = "sentence-transformers/all-MiniLM-L12-v2"):
+    def load_rag_pipeline(_self):
         """Load and cache the RAG pipeline"""
         try:
-            pipeline = RAGPipeline(embedding_model=embedding_model, device="cpu")
+            pipeline = RAGPipeline()
             logger.info("RAG pipeline loaded successfully")
             return pipeline
         except Exception as e:
@@ -89,7 +90,7 @@ class StreamlitChatApp:
         """Render the sidebar with configuration options"""
         with st.sidebar:
             st.header("⚙️ Configuration")
-            
+
             # Model parameters
             max_new_tokens = st.number_input(
                 "Max New Tokens", 
