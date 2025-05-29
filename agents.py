@@ -9,6 +9,7 @@ from config import (
     TIME_PATTERN, PHONE_PATTERN, EMAIL_PATTERN,
     CALL_PATTERNS, APPOINTMENT_PATTERNS, config
 )
+from calendar_invite import create_calendar_event
 
 agent_config = config.get_agent_config()
 
@@ -191,26 +192,34 @@ class ConversationalAgent:
         """Format contact information confirmation message"""
         return f"""Thank you! I have collected your information:
                                     
-                    📞 **Contact Details Saved:**
-                    - Name: {self.user_info.name}
-                    - Phone: {self.user_info.phone}
-                    - Email: {self.user_info.email}
+📞 **Contact Details Saved:**
+- Name: {self.user_info.name}
+- Phone: {self.user_info.phone}
+- Email: {self.user_info.email}
 
-                    Someone from our team will contact you shortly!"""
+Someone from our team will contact you shortly!"""
     
     def _format_appointment_confirmation(self) -> str:
         """Format appointment confirmation message"""
+        try:
+            event_link = create_calendar_event(self.user_info)
+            link_text = f"[View Event]({event_link})"
+        except Exception as e:
+            event_link = None
+            link_text = "There was an issue sending the calendar invite."
+        
         return f"""**Appointment Booked Successfully!**
 
-                    📅 **Appointment Details:**
-                    - Name: {self.user_info.name}
-                    - Phone: {self.user_info.phone}
-                    - Email: {self.user_info.email}
-                    - Date: {self.user_info.appointment_date}
-                    - Time: {self.user_info.appointment_time}
-                    - Reason: {self.user_info.reason}
+📅 **Appointment Details:**
+- Name: {self.user_info.name}
+- Phone: {self.user_info.phone}
+- Email: {self.user_info.email}
+- Date: {self.user_info.appointment_date}
+- Time: {self.user_info.appointment_time}
+- Reason: {self.user_info.reason}
 
-                    You will receive a confirmation email shortly. Thank you!"""
+You will receive a confirmation email shortly.
+Google Calendar Event: {link_text}"""
     
     def get_current_state_info(self) -> dict:
         """Get current conversation state information for debugging"""
