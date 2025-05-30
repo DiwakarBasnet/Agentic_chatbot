@@ -101,11 +101,11 @@ class StreamlitChatApp:
             )
             
             k = st.number_input(
-                "Number of Retrieved Documents (k)", 
+                "Number of Retrieved chunks (k)", 
                 min_value=1, 
                 max_value=10, 
                 value=3,
-                help="Number of similar documents to retrieve for context"
+                help="Number of similar chunks to retrieve for context"
             )
             
             st.header("📄 Document Upload")
