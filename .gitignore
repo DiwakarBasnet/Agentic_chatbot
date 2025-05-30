@@ -1,0 +1,4 @@
+/files/
+/credentials/
+/__pycache__/
+.env
