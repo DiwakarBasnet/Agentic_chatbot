@@ -7,9 +7,7 @@ from config import config
 
 load_dotenv()
 
-CACHE_DIR = os.path.normpath(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models")
-)
+CACHE_DIR = config.models_dir
 
 
 class ChatModel:
@@ -35,7 +33,7 @@ class ChatModel:
         self.model.eval()
         self.chat_history = []
     
-    def generate(self, question: str, context: Optional[str] = None, max_new_tokens: int = 250) -> str:
+    def generate(self, question: str, context: Optional[str] = None, max_new_tokens: int = 512) -> str:
         """
         Generate response for a given question with optional context
         
@@ -89,13 +87,19 @@ class ChatModel:
             
             Question: {question}"""
         else:
-            return f"""Using the information contained in the context, give a detailed answer to the question.
-            If the context doesn't contain relevant information, say so and provide a general helpful response.
-            Be conversational and friendly.
-            
-            Context: {context}
-            
-            Question: {question}"""
+            return f"""
+                    You are a helpful assistant.
+                    You will be given a set of relevant documents and a user question.
+                    Think through the problem step by step, referencing the documents as needed.
+                    After reasoning carefully, provide a final concise answer.
+
+                    Context Documents:
+                    {context}
+
+                    Question:
+                    {question}
+
+                    Let's think step by step:"""
     
     def _clean_response(self, response: str, formatted_prompt: str) -> str:
         """Clean and format the model response"""
