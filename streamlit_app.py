@@ -86,6 +86,42 @@ class StreamlitChatApp:
     def render_sidebar(self):
         """Render the sidebar with configuration options"""
         with st.sidebar:
+            # Upload documents
+            st.header("📄 Document Upload")
+            uploaded_files = st.file_uploader(
+                "Upload PDFs for context", 
+                type=["PDF", "pdf"], 
+                accept_multiple_files=True,
+                help="Upload PDF documents to provide context for your questions"
+            )
+
+            # Process uploaded files
+            if uploaded_files:
+                file_paths = []
+                for uploaded_file in uploaded_files:
+                    file_path = self.save_uploaded_file(uploaded_file)
+                    if file_path:
+                        file_paths.append(file_path)
+                
+                if file_paths:
+                    with st.spinner("Processing documents..."):
+                        rag_pipeline = self.load_rag_pipeline()
+                        if rag_pipeline and rag_pipeline.setup_database(file_paths):
+                            st.session_state.rag_pipeline = rag_pipeline
+                            st.success(f"✅ Processed {len(uploaded_files)} document(s)")
+                        else:
+                            st.error("Failed to process documents")
+            
+            # Features
+            st.header("💡 Features")
+            st.info("""
+            **Available Commands:**
+            - Ask questions about uploaded documents
+            - Say "call me" to request a callback
+            - Say "book appointment" to schedule a meeting
+            - Use natural language for dates (e.g., "next Monday")
+            """)
+            
             st.header("⚙️ Configuration")
 
             # Model parameters
@@ -104,41 +140,7 @@ class StreamlitChatApp:
                 value=3,
                 help="Number of similar chunks to retrieve for context"
             )
-            
-            st.header("📄 Document Upload")
-            uploaded_files = st.file_uploader(
-                "Upload PDFs for context", 
-                type=["PDF", "pdf"], 
-                accept_multiple_files=True,
-                help="Upload PDF documents to provide context for your questions"
-            )
-            
-            # Process uploaded files
-            if uploaded_files:
-                file_paths = []
-                for uploaded_file in uploaded_files:
-                    file_path = self.save_uploaded_file(uploaded_file)
-                    if file_path:
-                        file_paths.append(file_path)
-                
-                if file_paths:
-                    with st.spinner("Processing documents..."):
-                        rag_pipeline = self.load_rag_pipeline()
-                        if rag_pipeline and rag_pipeline.setup_database(file_paths):
-                            st.session_state.rag_pipeline = rag_pipeline
-                            st.success(f"✅ Processed {len(uploaded_files)} document(s)")
-                        else:
-                            st.error("Failed to process documents")
-            
-            st.header("💡 Features")
-            st.info("""
-            **Available Commands:**
-            - Ask questions about uploaded documents
-            - Say "call me" to request a callback
-            - Say "book appointment" to schedule a meeting
-            - Use natural language for dates (e.g., "next Monday")
-            """)
-            
+
             # Debug information
             if st.checkbox("Show Debug Info"):
                 st.header("🔍 Debug Information")
