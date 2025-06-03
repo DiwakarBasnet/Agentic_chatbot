@@ -11,7 +11,6 @@ class ModelConfig:
     max_new_tokens: int = 512
     temperature: float = 0.7
     top_p: float = 0.9
-    cache_dir: Optional[str] = None
 
 
 @dataclass
@@ -55,7 +54,7 @@ class AppConfig:
         # Directory paths
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         self.files_dir = os.path.join(self.base_dir, "files")
-        self.models_dir = os.path.join(self.base_dir, "..", "models")
+        self.models_dir = os.path.join(self.base_dir, "models")
         self.logs_dir = os.path.join(self.base_dir, "logs")
         
         # Ensure directories exist

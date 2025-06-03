@@ -1,6 +1,5 @@
 import os
 import streamlit as st
-from typing import Optional
 import logging
 from model import ChatModel
 from rag_util import RAGPipeline
@@ -12,9 +11,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configuration
-FILES_DIR = os.path.normpath(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "files")
-)
+FILES_DIR = config.files_dir
 
 # Ensure files directory exists
 os.makedirs(FILES_DIR, exist_ok=True)
