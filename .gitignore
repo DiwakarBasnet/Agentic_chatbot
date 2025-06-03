@@ -1,4 +1,5 @@
 /files/
 /credentials/
 /__pycache__/
+/models/
 .env
